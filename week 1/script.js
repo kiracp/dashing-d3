@@ -1,4 +1,3 @@
-
 var width=960,
     height=180,
 
@@ -45,3 +44,14 @@ d3.select(".chart")
     // Add text with value to each one
     // Can append strings to it
     .text(function(d) { return "$" + d;});
+
+var chartWidth = d3.max(dataList);
+console.log(chartWidth);
+
+d3.select("#dashboard")
+  .data(dataList)
+  .style("width",  chartWidth);
+
+
+
+
