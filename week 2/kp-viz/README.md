@@ -12,4 +12,5 @@ Things I wanted to do
 * Make a gradient of the legend
 * Add a new, meaningful dataset
 * Include a title
+* Change to month/weekday 
 * Figure out documentation style a la bl.ocks.org to display annotated viz work

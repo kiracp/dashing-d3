@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <meta charset="utf-8">
 <html>
@@ -38,13 +37,16 @@
     </div>
     <script type="text/javascript">
       var margin = { top: 50, right: 0, bottom: 100, left: 30 },
+          // Swap the width and the height to resize
           width = 430 - margin.left - margin.right,
           height = 960 - margin.top - margin.bottom,
           gridSize = Math.floor(height / 24),
+          // Added some elements to help with the positioning of the legend
           legendElementSize=gridSize/1.2,
           legendPadding=20,
           legendTextPadding=40,
           buckets = 9,
+          // Made changes to the colors of the viz
           colors = ["#40E0D0","#6EC395","#96B270","D89733","#FF8C00","#F95B45","#FF0080", "#C51E6C"], // alternatively colorbrewer.YlGnBu[9]
           days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
           times = ["1a", "2a", "3a", "4a", "5a", "6a", "7a", "8a", "9a", "10a", "11a", "12a", "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p", "10p", "11p", "12p"];
@@ -56,6 +58,7 @@
           .append("g")
           .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+      // Flip the x/y axis to lay out the days horizontally and the hours vertically
       var timeLabels = svg.selectAll(".timeLabel")
           .data(times)
           .enter().append("text")
@@ -118,6 +121,7 @@
           legend.enter().append("g")
               .attr("class", "legend");
 
+          // Modified the x and y to make the legend vertical
           legend.append("rect")
             .attr("x", width-110)
             .attr("y", function(d, i) { return (legendElementSize * i) +legendPadding; })
@@ -133,6 +137,7 @@
             .attr("x", width-70)
             .attr("y", function(d, i) { return (legendElementSize * i)+legendTextPadding; })
 
+          // Add a title to the legend
           legend.append("text")
             .attr("class","sans")
             .text("LEGEND")
