@@ -33,6 +33,7 @@ var margin = {top: 30, right: 20, bottom: 30, left: 50},
 
 // Parse the date / time
 var parsePace = d3.time.format("%M:%S").parse;
+var prettyPace = d3.time.format("%M:%S");
 
 // Set the ranges
 var x = d3.scale.linear().range([0, width]);
@@ -43,7 +44,12 @@ var xAxis = d3.svg.axis().scale(x)
     .orient("bottom").ticks(5);
 
 var yAxis = d3.svg.axis().scale(y)
-    .orient("left").ticks(5);
+    .orient("left").ticks(5)
+    .tickFormat ( function(d) {
+      var minutes = Math.floor(d/60);
+      var seconds = +(d%60).toFixed(0);
+      return(seconds == 60? (minutes+1) + ":00" : minutes + ":" + (seconds < 10 ? "0" : "") + seconds);
+    });
 
 // Define the line
 var valueline = d3.svg.line()
@@ -62,30 +68,42 @@ var svg = d3.select("body")
 // Get the data
 d3.csv("activities.csv", function(error, data) {
 
-    var xValue;
-    var yValue;
-
     data.forEach(function(d) {
+        d.number = +d.number;
+        console.log(d.number,d.pace); 
 
-        console.log(d.number,d.pace);
         d.pace = parsePace(d.pace);
-
-        var formatTime = d3.time.format("%M:%S");
-
-        d.pace = formatTime(d.pace); // "June 30, 2015"
-        d.pace = +d.pace;
         console.log(d.pace);
+        
+        var formatMinute = d3.time.format("%M");
+        //d.pace =+formatMinute(d.pace); 
+
+        var formatSecond = d3.time.format("%S");
+        d.pace = +formatSecond(d.pace) + +formatMinute(d.pace)*60;
+
+        //var formatTime = d3.time.format("%S") + d3.time.format("%M")*60;
+        
+
+        /*
+        console.log(d.pace, typeof(d.pace));
+
+        var paceFormatter = d3.time.format("%M");
+        d.pace = paceFormatter(d.pace);
+
+        console.log("Formatted: " + d.pace);
+        */
     });
+
+
 
     // Scale the range of the data
     x.domain(d3.extent(data, function(d) { return d.number; }));
     console.log (d3.max(data, function(d) { return d.pace; }));
-    y.domain([0, d3.max(data, function(d) { return d.pace; })]);
+    y.domain([300, d3.max(data, function(d) { return d.pace; })]);
 
     console.log(data);
-    svg.append("path")
-        .attr("class", "line")
-        .attr("d", valueline(data));
+
+    
 
     // Add the X Axis
     svg.append("g")
@@ -97,6 +115,10 @@ d3.csv("activities.csv", function(error, data) {
     svg.append("g")
         .attr("class", "y axis")
         .call(yAxis);
+
+    svg.append("path")
+        .attr("class", "line")
+        .attr("d", valueline(data));
 
 });
 
