@@ -133,6 +133,8 @@ d3.csv("activities.csv", function(error, data) {
         .attr("class", "line")
         .attr("d", valueline(data));
 
+    svg.append('text').html('KP Pace Over Time').attr('x', 200);
+
 });
 
 </script>
