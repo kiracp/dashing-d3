@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+    <title>Am I getting faster?</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="title"></div>
+    <div class="change"></div>
+<!-- load the d3.js library -->    
+<script src="http://d3js.org/d3.v3.min.js"></script>
+
+<script>
+// HELPER FUCTIONS
+//Parse date
+var parseDate = d3.time.format("%d-%b-%Y").parse;
+
+// Parse time
+var parseTime = d3.time.format("%H:%M:%S").parse;
+var parseShortTime = d3.time.format("%M:%S").parse;
+// Parse the pace
+var parsePace = d3.time.format("%M:%S").parse;
+
+// Getting seconds minutes and hours
+var formatHour = d3.time.format("%H");
+var formatMinute = d3.time.format("%M");
+var formatSecond = d3.time.format("%S");
+// Print the pace as MM:SS for tooltips and axis
+var prettyPace = function(d) {
+    var minutes = Math.floor(d/60);
+    var seconds = +(d%60).toFixed(0);
+    return(seconds == 60? (minutes+1) + ":00" : minutes + ":" + (seconds < 10 ? "0" : "") + seconds);
+}
+var prettyTime = function(d) {
+    var minutes = Math.floor(d/60);
+    var seconds = +(d%60).toFixed(0);
+    return(seconds == 60? (minutes+1) + ":00" : minutes + ":" + (seconds < 10 ? "0" : "") + seconds);
+}
+// Add the title to the chart
+function plotTitle(m, startPace, endPace) {
+    document.getElementsByClassName("title")[0].innerHTML = "KP Pace Chart";
+}
+// Hardcode the x axis
+var formatDay = function(d) {
+    var dates = ["2017","2018"];
+    return dates[d%4];      
+}
+var colors=["#000","#3A80E5"];
+// SETUP FUNCTIONS
+// Set the dimensions of the canvas / graph
+var margin = {top: 30, right: 20, bottom: 30, left: 50},
+    width = 800 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom,
+    padding = 30,
+    legendElementSize=10,
+    legendPadding=10,
+    legendTextPadding=20;
+// Set the ranges
+var x = d3.scale.linear().range([0,width]);
+var y = d3.scale.linear().range([height, 0]);
+// Define the axes
+var xAxis = d3.svg.axis().scale(x)
+    .orient("bottom").ticks(0)
+    .tickSize(0);
+var yAxis = d3.svg.axis().scale(y)
+    .orient("left").ticks(8)
+    // Make ticks as wide as the graph
+    .tickSize(-width)
+    // And represent them in time form
+    .tickFormat ( function(d) {
+      var minutes = Math.floor(d/60);
+      var seconds = +(d%60).toFixed(0);
+      return(seconds == 60? (minutes+1) + ":00" : minutes + ":" + (seconds < 10 ? "0" : "") + seconds);
+    });
+// LINEAR REGRESSION
+// Functions borrowed from https://bl.ocks.org/HarryStevens/be559bed98d662f69e68fc8a7e0ad097
+function calcLinear(data, x, y, minX, minY){
+  // Let totalPoints = the number of data points
+  var totalPoints = data.length;
+  // Get just the points
+  var pts = [];
+  data.forEach(function(d,i){
+    var obj = {};
+    obj.x = d[x];
+    obj.y = d[y];
+    obj.mult = obj.x*obj.y;
+    pts.push(obj);
+  });
+  var sum = 0;
+  var xSum = 0;
+  var ySum = 0;
+  var sumSq = 0;
+  pts.forEach(function(pt){
+    sum = sum + pt.mult;
+    xSum = xSum + pt.x;
+    ySum = ySum + pt.y;
+    sumSq = sumSq + (pt.x * pt.x);
+  });
+  var a = sum * totalPoints;
+  var b = xSum * ySum;
+  var c = sumSq * totalPoints;
+  var d = xSum * xSum;
+  // Plug the values that you calculated for a, b, c, and d into the following equation to calculate the slope
+  // slope = m = (a - b) / (c - d)
+  var m = (a - b) / (c - d);
+  // Let e equal the sum of all y-values
+  var e = ySum;
+  // Let f equal the slope times the sum of all x-values
+  var f = m * xSum;
+  // Plug the values you have calculated for e and f into the following equation for the y-intercept
+  // y-intercept = b = (e - f) / n
+  var b = (e - f) / totalPoints;
+  var formatSlope = d3.format(".2f");
+  var formattedSlope = formatSlope(m*60);
+  // Print the plot title
+  plotTitle(formattedSlope, (m * minX + b), minY);
+  // return an object of two points
+  // each point is an object with an x and y coordinate
+  return {
+    ptA : {
+      x: minX,
+      y: m * minX + b
+    },
+    ptB : {
+      y: minY,
+      x: (minY - b) / m
+    }
+  }
+}
+// Adds the svg canvas
+var svg = d3.select("body")
+    .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom+20)
+    .append("g")
+        .attr("transform", 
+              "translate(" + margin.left + "," + margin.top + ")");
+// Add in the tooltips
+var tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0);
+// Get the data
+d3.csv("pretty-pace.csv", function(error, data) {
+    data.forEach(function(d) {
+        // Convert from string to number
+        d.date = parseDate(d.date);
+
+
+        d.distance = +d.distance;
+        console.log(typeof(d.time));
+        if (d.time.length > 5) {
+          console.log("Hours included, " + d.time.length + " " + d.time);
+          d.time = parseTime(d.time);
+          
+          d.time = +formatHour(d.time)*3600 + +formatSecond(d.time) + +formatMinute(d.time)*60;
+        } else {
+          d.time = parseShortTime(d.time);
+          d.time = +formatSecond(d.time) + +formatMinute(d.time)*60;
+        }
+        
+
+        // Turn pace into d3 time format
+        d.pace = parsePace(d.pace);
+        
+        // Get minutes and seconds and calculate total seconds
+        d.pace = +formatSecond(d.pace) + +formatMinute(d.pace)*60;
+
+        console.log("Date: " + d.date + "\nDistance: " + d.distance + "\nTime: " + d.time + "\nPace: " + d.pace );
+    });
+    // Scale the range of the data
+    x.domain(d3.extent(data, function(d) { return d.number; }));
+    // hardcoding: start y axis at 6:00
+    y.domain([360, d3.max(data, function(d) { return d.pace+padding; })]);
+    
+    // Add the X Axis
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height-10 + ")")
+        .call(xAxis);
+    svg.append("text")
+        .attr("transform", "translate(" + width/2 + "," + height + ")")
+        .attr("y", 20)
+        .style("text-anchor","middle")
+        .text("Jan 2017 – Feb 2018");
+    svg.append("text")
+        .attr("transform", "rotate(-90)")
+      .attr("y", 0 - margin.left)
+      .attr("x",0 - (height / 2))
+      .attr("dy", "1em")
+      .style("text-anchor", "middle")
+      .text("Average Pace per Mile");    
+    // Add the Y Axis
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis)
+        // Add in dotted lines
+        .selectAll(".tick line").attr("stroke", "#666").attr("stroke-dasharray", "3,4");
+    // Scatterplot
+    svg.selectAll("dot")    
+        .data(data)         
+    .enter().append("circle")                               
+        .attr("r", 3)       
+        // Use domain functions to plot x/y coordinates of data
+        .attr("cx", function(d) { return x(d.number); })       
+        .attr("cy", function(d) { return y(d.pace); })
+        // Tooltip 
+        .on("mouseover", function(d) {      
+            tooltip.transition().style("opacity", .9);      
+            tooltip.html("Pace: " + prettyPace(d.pace))
+                   .style("left", (d3.event.pageX + 5) + "px")
+                   .style("top", (d3.event.pageY - 18) + "px");
+            })                  
+        .on("mouseout", function(d) {       
+            tooltip.transition().style("opacity", 0);   
+        });
+    // Calculate linear regression
+    var lg = calcLinear(data, 
+        // Names of x and y columns
+        "number","pace",
+        d3.min(data, function(d){ return d.number}), 
+        d3.min(data, function(d){ return d.pace})
+    );
+    // Add in linear regression line
+    svg.append("line")
+        .attr("class", "regression")
+        .attr("x1", x(lg.ptA.x))
+        .attr("y1", y(lg.ptA.y))
+        .attr("x2", x(lg.ptB.x))
+        .attr("y2", y(lg.ptB.y));
+    // LEGEND
+    var legend = svg.selectAll(".legend").data([0].concat(function(d) { return d; }));
+      legend.enter().append("g").attr("class", "legend");
+      // Modified the x and y to make the legend vertical
+      legend.append("rect")
+        .attr("x", width-90)
+        .attr("y", function(d, i) { return (legendElementSize * i) + legendPadding; })
+        .attr("width", legendElementSize)
+        .attr("height", legendElementSize)
+       // .attr("transform",function (d,i) {return "translate(0," +i + 20 + ")"})
+        .style("fill", function(d, i) { return colors[i]; });
+      legend.append("text")
+        .attr("class", "sans")
+        .text(function(d, i) { 
+            var legend = ["Pace","Regression"];
+            return legend[i]})
+        .attr("x", width-70)
+        .attr("y", function(d, i) { return (legendElementSize * i)+legendTextPadding; })
+      legend.exit().remove();
+});
+</script>
+</body>

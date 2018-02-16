@@ -1,0 +1,43 @@
+body { 
+  padding:20px;
+  font: 12px Arial;
+}
+
+path { 
+    stroke: #222;
+    stroke-width: 2;
+    fill: none;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+.title {
+  font-size:24px;
+  font-weight:bold;
+  margin-bottom:10px;
+}
+
+.tooltip {
+  position: absolute;
+  width: 200px;
+  height: 28px;
+  pointer-events: none;
+}
+.legend {
+  background-color: white;
+}
+.regression {
+    stroke-width: 2px;
+    stroke: #3A80E5;
+    stroke-dasharray: 8,5;
+}
+.yaxis {
+  stroke-dasharray: 2,4;
+  color:#666;
+  stroke-width:2px;
+}
