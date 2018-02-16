@@ -3,23 +3,22 @@ def main():
 	input = open('pace.txt', 'r').readlines()
 
 	#Output file
-	output = open('pretty-pace.txt', 'w')
+	output = open('pretty-pace.csv', 'w')
 
 	count = 0
 	
 	# This will contain our csv row
 	row = ""
-
+	row_count = 0
 	#Each input item is 15 lines
 	#Our job is to break those lines up and determine which number contains which value
 	for i in input:
 		i = i.strip()
-
 		# Day-month
 		if (count%15 == 1): 
 			row = ""
 			i = i.split()
-			row = i[0]+"-"+i[1]
+			row = str(row_count) + "," + i[0]+"-"+i[1]
 		#Year
 		if (count%15 == 2): 
 			row = row + "-" + i
@@ -36,6 +35,7 @@ def main():
 
 			row = row + "," + i[0] + "\n"
 			#print row
+			row_count = row_count + 1
 			output.write(row)
 
 		count=count+1

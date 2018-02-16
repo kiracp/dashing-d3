@@ -9,7 +9,6 @@ path {
     fill: none;
 }
 
-.axis path,
 .axis line {
     fill: none;
     stroke: grey;
@@ -21,7 +20,9 @@ path {
   font-weight:bold;
   margin-bottom:10px;
 }
-
+.hide {
+  display:none !important;
+}
 .tooltip {
   position: absolute;
   width: 200px;
