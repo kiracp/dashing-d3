@@ -5,7 +5,7 @@
 body { font: 12px Arial;}
 
 path { 
-    stroke: steelblue;
+    stroke: #222;
     stroke-width: 2;
     fill: none;
 }
@@ -17,6 +17,19 @@ path {
     stroke-width: 1;
     shape-rendering: crispEdges;
 }
+.title {
+  font-size:24px;
+  font-weight:bold;
+  margin-bottom:10px;
+}
+
+.tooltip {
+  position: absolute;
+  width: 200px;
+  height: 28px;
+  pointer-events: none;
+}
+
 </style>
 <body>
 
@@ -26,7 +39,7 @@ path {
 <script>
 
 // Set the dimensions of the canvas / graph
-var margin = {top: 30, right: 20, bottom: 30, left: 50},
+var margin = {top: 50, right: 20, bottom: 30, left: 50},
     width = 800 - margin.left - margin.right,
     height = 400 - margin.top - margin.bottom;
     padding = 30;
@@ -39,6 +52,7 @@ var dates = ["2017","2018"];
 var formatDay = function(d) {
     return dates[d % 3];      
 }
+
 
 // Set the ranges
 var x = d3.scale.linear().range([width,0]);
@@ -73,6 +87,11 @@ var svg = d3.select("body")
     .append("g")
         .attr("transform", 
               "translate(" + margin.left + "," + margin.top + ")");
+
+// add the tooltip area to the webpage
+var tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0);
 
 // Get the data
 d3.csv("activities.csv", function(error, data) {
@@ -131,9 +150,24 @@ d3.csv("activities.csv", function(error, data) {
 
     svg.append("path")
         .attr("class", "line")
-        .attr("d", valueline(data));
+        .attr("d", valueline(data))
+        .on("mouseover", function(d) {
+              tooltip.transition()
+                   .duration(200)
+                   .style("opacity", .9);
+              tooltip.html("Pace: " + d.pace)
+                   .style("left", (d3.event.pageX + 5) + "px")
+                   .style("top", (d3.event.pageY - 28) + "px");
+          })
+          .on("mouseout", function(d) {
+              tooltip.transition()
+                   .duration(500)
+                   .style("opacity", 0);
+          });
 
-    svg.append('text').html('KP Pace Over Time').attr('x', 200);
+    svg.append('text')
+      .html('KP Pace Over Time')
+      .attr("class", "title");
 
 });
 

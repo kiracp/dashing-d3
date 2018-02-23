@@ -15,18 +15,22 @@
                onclick="updateData()" />
     </div>
 <!-- load the d3.js library -->    
-<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="d3.v3.js.min"></script>
 
 <script>
 // HELPER FUCTIONS
 //Parse date
-var parseDate = d3.time.format("%d-%b-%Y").parse;
+var parseDate = d3.time.format("%d-%b-%y").parse;
 
 // Parse time
 var parseTime = d3.time.format("%H:%M:%S").parse;
 var parseShortTime = d3.time.format("%M:%S").parse;
 // Parse the pace
-var parsePace = d3.time.format("%M:%S").parse;
+function parsePace(pace){
+  pace = d3.time.format("%M:%S").parse(pace);
+  pace = +formatSecond(pace) + +formatMinute(pace)*60;
+  return pace;
+} 
 
 // Getting seconds minutes and hours
 var formatHour = d3.time.format("%H");
@@ -44,8 +48,9 @@ var prettyTime = function(d) {
     return(seconds == 60? (minutes+1) + ":00" : minutes + ":" + (seconds < 10 ? "0" : "") + seconds);
 }
 // Add the title to the chart
-function plotTitle(m, startPace, endPace) {
+function plotTitle(formattedSlope, formatSlope, m, b) {
     document.getElementsByClassName("title")[0].innerHTML = "KP Pace Chart";
+    document.getElementsByClassName("change")[0].innerHTML = "y= " + m + "x + " + b + "Formatted slope: " + formattedSlope;
 }
 // Define the line
 var valueline = d3.svg.line()
@@ -74,7 +79,26 @@ var xAxis = d3.svg.axis().scale(x)
     .orient("bottom").ticks(10)
     .tickFormat(d3.time.format("%b-%y"));
 
-
+function scatter (graph, xVar, yVar) {
+  graph.selectAll("dot") 
+        .attr("class","dot")   
+        .data(data)         
+        .enter().append("circle")                               
+        .attr("r", 4)       
+        // Use domain functions to plot x/y coordinates of data
+        .attr("cx", function(d) { return x(xVar); })       
+        .attr("cy", function(d) { return y(yVar); })
+        // Tooltip 
+        .on("mouseover", function(d) {      
+            tooltip.transition().style("opacity", .9);      
+            tooltip.html("Pace: " + prettyPace(yVar))
+                   .style("left", (d3.event.pageX + 5) + "px")
+                   .style("top", (d3.event.pageY - 18) + "px");
+            })                  
+        .on("mouseout", function(d) {       
+            tooltip.transition().style("opacity", 0);   
+        });
+}
 var yAxis = d3.svg.axis().scale(y)
     .orient("left").ticks(8)
     // Make ticks as wide as the graph
@@ -90,6 +114,173 @@ var yAxisDist = d3.svg.axis().scale(y)
     .orient("left").ticks(8)
     // Make ticks as wide as the graph
     .tickSize(-width);
+
+function distanceGraph(data) {
+
+    // Scale the range of the data again 
+    x.domain(d3.extent(data, function(d) { return d.date; }));
+    y.domain([0, d3.max(data, function(d) { return d.distance+3; })]);
+
+        // Add the X Axis
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+
+    svg.append("text")
+      .attr("class", "yaxisLabel")
+        .attr("transform", "rotate(-90)")
+      .attr("y", 0 - margin.left)
+      .attr("x",0 - (height / 2))
+      .attr("dy", "1em")
+      .style("text-anchor", "middle")
+      .text("Distance (Miles)");    
+    // Add the Y Axis
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxisDist)
+        .selectAll(".tick line").attr("stroke", "#666").attr("stroke-dasharray", "3,4");
+    
+    // Scatterplot of distance
+    svg.selectAll("dot") 
+        .attr("class","dot")   
+        .data(data)         
+        .enter().append("circle")                               
+        .attr("r", 4)     
+        .attr("fill", "#ccc")  
+        // Use domain functions to plot x/y coordinates of data
+        .attr("cx", function(d) { return x(d.date); })       
+        .attr("cy", function(d) { return y(d.distance); })
+        // Tooltip 
+        .on("mouseover", function(d) {      
+            tooltip.transition().style("opacity", .9);      
+            tooltip.html("Distance: " + d.distance)
+                   .style("left", (d3.event.pageX + 5) + "px")
+                   .style("top", (d3.event.pageY - 18) + "px");
+            })                  
+        .on("mouseout", function(d) {       
+            tooltip.transition().style("opacity", 0);   
+        });
+
+    svg.append("line")
+      .attr("class", "regression")
+      .attr("x1", x(parseDate("5-Apr-17")))
+      .attr("y1", height)
+      .attr("x2", x(parseDate("5-Apr-17")))
+      .attr("y2", 0);
+    svg.append("line")
+      .attr("class", "regression")
+      .attr("x1", x(parseDate("1-Oct-17")))
+      .attr("y1", height)
+      .attr("x2", x(parseDate("1-Oct-17")))
+      .attr("y2", 0);
+}
+function paceGraph(data) {
+  // PACE GRAPH 
+
+    // Scale the range of the data
+    x.domain(d3.extent(data, function(d) { return d.date; }));
+    // hardcoding: start y axis at 6:00
+    y.domain([360, d3.max(data, function(d) { return d.pace+padding; })]);
+
+    // Add the X Axis
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+
+    svg.append("text")
+      .attr("class", "yaxisLabel")
+        .attr("transform", "rotate(-90)")
+      .attr("y", 0 - margin.left)
+      .attr("x",0 - (height / 2))
+      .attr("dy", "1em")
+      .style("text-anchor", "middle")
+      .text("Average Pace per Mile");    
+    // Add the Y Axis
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis)
+        // Add in dotted lines
+        .selectAll(".tick line").attr("stroke", "#666").attr("stroke-dasharray", "3,4");
+    
+    // Scatterplot of pace
+    //data.forEach(function(d) { scatter(svg, d.date, d.pace); });
+
+    
+    svg.selectAll("dot") 
+        .attr("class","dot")   
+        .data(data)         
+        .enter().append("circle")                               
+        .attr("r", 4)       
+        // Use domain functions to plot x/y coordinates of data
+        .attr("cx", function(d) { return x(d.date); })       
+        .attr("cy", function(d) { return y(d.pace); })
+        // Tooltip 
+        .on("mouseover", function(d) {      
+            tooltip.transition().style("opacity", .9);      
+            tooltip.html("Pace: " + prettyPace(d.pace))
+                   .style("left", (d3.event.pageX + 5) + "px")
+                   .style("top", (d3.event.pageY - 18) + "px");
+            })                  
+        .on("mouseout", function(d) {       
+            tooltip.transition().style("opacity", 0);   
+        });
+
+
+    svg.append("line")
+      .attr("class", "regression")
+      .attr("x1", x(parseDate("5-Apr-17")))
+      .attr("y1", height)
+      .attr("x2", x(parseDate("5-Apr-17")))
+      .attr("y2", 0);
+    svg.append("line")
+      .attr("class", "regression")
+      .attr("x1", x(parseDate("1-Oct-17")))
+      .attr("y1", height)
+      .attr("x2", x(parseDate("1-Oct-17")))
+      .attr("y2", 0);
+  
+    // Calculate linear regression
+    
+    var lg = calcLinear(data, 
+        // Names of x and y columns
+        "date","pace",
+        d3.min(data, function(d){ return d.date}), 
+        d3.min(data, function(d){ return d.pace})
+
+    );
+    
+    // Add in linear regression line
+    /*
+    svg.append("line")
+      .attr("class", "regression")
+        .attr("x1", regX(lg.ptA.x))
+        .attr("y1", y(lg.ptA.y))
+        .attr("x2", regX(lg.ptB.x))
+        .attr("y2", y(lg.ptB.y));
+    */
+
+    // LEGEND
+    var legend = svg.selectAll(".legend").data([0].concat(function(d) { return d; }));
+      legend.enter().append("g").attr("class", "legend");
+      // Modified the x and y to make the legend vertical
+      legend.append("rect")
+        .attr("x", width-90)
+        .attr("y", function(d, i) { return (legendElementSize * i) + legendPadding; })
+        .attr("width", legendElementSize)
+        .attr("height", legendElementSize)
+       // .attr("transform",function (d,i) {return "translate(0," +i + 20 + ")"})
+        .style("fill", function(d, i) { return colors[i]; });
+      legend.append("text")
+        .attr("class", "sans")
+        .text(function(d, i) { 
+            var legend = ["Pace","Regression"];
+            return legend[i]})
+        .attr("x", width-70)
+        .attr("y", function(d, i) { return (legendElementSize * i)+legendTextPadding; })
+      legend.exit().remove();
+}
 
 // LINEAR REGRESSION
 // Functions borrowed from https://bl.ocks.org/HarryStevens/be559bed98d662f69e68fc8a7e0ad097
@@ -131,8 +322,10 @@ function calcLinear(data, x, y, minX, minY){
   var b = (e - f) / totalPoints;
   var formatSlope = d3.format(".2f");
   var formattedSlope = formatSlope(m*60);
+
   // Print the plot title
-  plotTitle(formattedSlope, (m * minX + b), minY);
+  plotTitle(formattedSlope, formatSlope, m, b);
+  console.log(width, a, b, c, d, e, f);
   // return an object of two points
   // each point is an object with an x and y coordinate
   return {
@@ -183,167 +376,50 @@ d3.csv("pretty-pace.csv", function(error, data) {
         // Turn pace into d3 time format
         // Get minutes and seconds and calculate total seconds
         d.pace = parsePace(d.pace);
-        d.pace = +formatSecond(d.pace) + +formatMinute(d.pace)*60;
 
         // console.log("Date: " + d.date + "\nDistance: " + d.distance + "\nTime: " + d.time + "\nPace: " + d.pace );
     });
 
-    // Scale the range of the data
-    x.domain(d3.extent(data, function(d) { return d.date; }));
-    // hardcoding: start y axis at 6:00
-    y.domain([360, d3.max(data, function(d) { return d.pace+padding; })]);
-    
-    // Add the X Axis
-    svg.append("g")
-        .attr("class", "x axis")
-        .attr("transform", "translate(0," + height + ")")
-        .call(xAxis);
+    paceGraph(data);
+     //distanceGraph(data);
 
-    svg.append("text")
-      .attr("class", "yaxisLabel")
-        .attr("transform", "rotate(-90)")
-      .attr("y", 0 - margin.left)
-      .attr("x",0 - (height / 2))
-      .attr("dy", "1em")
-      .style("text-anchor", "middle")
-      .text("Average Pace per Mile");    
-    // Add the Y Axis
-    svg.append("g")
-        .attr("class", "y axis")
-        .call(yAxis)
-        // Add in dotted lines
-        .selectAll(".tick line").attr("stroke", "#666").attr("stroke-dasharray", "3,4");
-    
-    // Scatterplot of pace
-    svg.selectAll("dot") 
-        .attr("class","dot")   
-        .data(data)         
-        .enter().append("circle")                               
-        .attr("r", 4)       
-        // Use domain functions to plot x/y coordinates of data
-        .attr("cx", function(d) { return x(d.date); })       
-        .attr("cy", function(d) { return y(d.pace); })
-        // Tooltip 
-        .on("mouseover", function(d) {      
-            tooltip.transition().style("opacity", .9);      
-            tooltip.html("Pace: " + prettyPace(d.pace))
-                   .style("left", (d3.event.pageX + 5) + "px")
-                   .style("top", (d3.event.pageY - 18) + "px");
-            })                  
-        .on("mouseout", function(d) {       
-            tooltip.transition().style("opacity", 0);   
-        });
-
-    // Calculate linear regression
-    
-    var lg = calcLinear(data, 
-        // Names of x and y columns
-        "number","pace",
-        d3.min(data, function(d){ return d.number}), 
-        d3.min(data, function(d){ return d.pace})
-    );
-    /*
-    // Add in linear regression line
-    svg.append("line")
-        .attr("class", "regression")
-        .attr("x1", regX(lg.ptA.x))
-        .attr("y1", y(lg.ptA.y))
-        .attr("x2", regX(lg.ptB.x))
-        .attr("y2", y(lg.ptB.y));
-  */
-
-    // LEGEND
-    var legend = svg.selectAll(".legend").data([0].concat(function(d) { return d; }));
-      legend.enter().append("g").attr("class", "legend");
-      // Modified the x and y to make the legend vertical
-      legend.append("rect")
-        .attr("x", width-90)
-        .attr("y", function(d, i) { return (legendElementSize * i) + legendPadding; })
-        .attr("width", legendElementSize)
-        .attr("height", legendElementSize)
-       // .attr("transform",function (d,i) {return "translate(0," +i + 20 + ")"})
-        .style("fill", function(d, i) { return colors[i]; });
-      legend.append("text")
-        .attr("class", "sans")
-        .text(function(d, i) { 
-            var legend = ["Pace","Regression"];
-            return legend[i]})
-        .attr("x", width-70)
-        .attr("y", function(d, i) { return (legendElementSize * i)+legendTextPadding; })
-      legend.exit().remove();
 });
 
 // Swap out for distance data
 function updateData() {
-
-  // Get the data again
-
-    
-
-    // Select the section we want to apply our changes to
-    var svg = d3.select("body").transition();
-
-    d3.csv("pretty-pace.csv", function(error, data) {
-      data.forEach(function(d) {
+  d3.csv("pretty-pace.csv", function(error, data) {
+    data.forEach(function(d) {
+        // Make the numbers numbers!
+        d.number = +d.number;
         d.distance = +d.distance;
+        
         // Parse date
         d.date = parseDate(d.date);
+
+        // "Durations" (time and pace) will be represented in total seconds
+        // If time includes hours, we'll need to parse it differently
+        if (d.time.length > 5) {
+          d.time = parseTime(d.time);          
+          d.time = +formatHour(d.time)*3600 + +formatSecond(d.time) + +formatMinute(d.time)*60;
+        // Otherwise, just consider mins and seconds
+        } else {
+          d.time = parseShortTime(d.time);
+          d.time = +formatSecond(d.time) + +formatMinute(d.time)*60;
+        }
+
+        // Turn pace into d3 time format
+        // Get minutes and seconds and calculate total seconds
+        d.pace = parsePace(d.pace);
+
+        // console.log("Date: " + d.date + "\nDistance: " + d.distance + "\nTime: " + d.time + "\nPace: " + d.pace );
     });
+    svg.selectAll("dot") 
+      .attr("class","hide");  
 
-      // Scale the range of the data again 
-    x.domain(d3.extent(data, function(d) { return d.date; }));
-    y.domain([0, d3.max(data, function(d) { return d.distance+3; })]);
-     // svg.select("dot")
-        
+    distanceGraph(data);
+     //distanceGraph(data);
 
-    // Make the changes
-        // Scatterplot of pace
-    /*
-    svg.selectAll(".dot")
-
-        .data(data)         
-        .enter().append("circle")                               
-        .attr("r", 4)       
-        // Use domain functions to plot x/y coordinates of data
-        .attr("cx", function(d) { return x(d.date); })       
-        .attr("cy", function(d) { return y(d.distance); })
-        .duration(750);
-        // Tooltip 
-        /*
-        .on("mouseover", function(d) {      
-            tooltip.transition().style("opacity", .9);      
-            tooltip.html("Pace: " + prettyPace(d.pace))
-                   .style("left", (d3.event.pageX + 5) + "px")
-                   .style("top", (d3.event.pageY - 18) + "px");
-            })                  
-        .on("mouseout", function(d) {       
-            tooltip.transition().style("opacity", 0);   
-        });*/
-
-        svg.select(".x.axis") // change the x axis
-            .duration(750)
-            .call(xAxis);
-        svg.select(".y.axis") // change the y axis
-            .duration(750)
-            .call(yAxisDist)
-            .selectAll(".tick line").attr("stroke", "#666").attr("stroke-dasharray", "3,4");
-
-        svg.select(".yaxisLabel")
-          .text("Distance (Miles)"); 
-
-        svg.selectAll("circle")
-          .attr("class", "hide");
-
-        svg.selectAll("newdot") 
-         // .attr("class","dot")   
-          .data(data)
-          .enter().append("circle") 
-          .attr("r",4)
-          .attr("cx", function(d) { return x(d.date); })
-          .attr("cy", function(d) {return y(d.distance); })
-          .duration(750);
-
-    });
+});
 }
 </script>
 </body>
