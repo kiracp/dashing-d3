@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+  <head>
+    <style>
+      rect.bordered {
+        stroke: #E6E6E6;
+        stroke-width:2px;   
+      }
+
+      text.mono {
+        font-size: 9pt;
+        font-family: Consolas, courier;
+        fill: #aaa;
+      }
+
+      text.axis-habit {
+        fill: #000;
+      }
+
+      text.rotated {
+        transform: rotate(45deg); /* Equal to rotateZ(45deg) */
+      }
+
+      text.axis-day {
+        fill: #000;
+      }
+    </style>
+    <script src="http://d3js.org/d3.v3.js"></script>
+  </head>
+  <body>
+    <div id="chart"></div>
+    <div id="dataset-picker">
+    </div>
+    <script type="text/javascript">
+  var margin = { top: 50, right: 0, bottom: 100, left: 30 },
+      //width of the overall visualization
+      width = 960 - margin.left - margin.right,
+      //height of the visualization
+      height = 960 - margin.top - margin.bottom,
+      gridSize = Math.floor(height / 28),
+      legendElementWidth = gridSize*2,
+      buckets = 2,
+      color = d3.scale.category10();
+      parseDate = d3.time.format("%m/%d/%y").parse;
+      color = ["#ffffd9","#8F4CCB"], // alternatively colorbrewer.YlGnBu[9]
+      habitname = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+      //ydates = ["1", "2", "3", "4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20"]
+      datasets = ["data.csv", "data2.csv"];
+      var x = d3.scale.ordinal()
+      //     .domain(d3.keys(theData[0]))
+    //      .rangeRoundBands([0, width]);
+      var y = d3.scale.linear().range([height, 0]);
+      
+
+
+  var svg = d3.select("#chart").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  
+
+//   var dayLabels = svg.selectAll(".dayLabel")
+//       .data(habitname)
+//       .enter().append("text")
+//         .text(function(d) { return d; })
+//   //use the key to determine the x value?
+// //        .attr("x", function(d) { return x(d.key); })
+//         .attr("x", function(d, i) { return i * gridSize; })
+//         .attr("y", 0)
+//         .style("text-anchor", "middle")
+//         .attr("transform", "translate(" + gridSize / 2 + ", -6)")
+//         .attr("class", function(d, i) { return ((i >= 7 && i <= 16) ? "dayLabel mono axis axis-workweek" : "dayLabel mono axis"); });
+
+//   var yLabels = svg.selectAll(".yLabel")
+//       .data(ydates)
+//       .enter().append("text")
+//         .text(function (d) { return d; })
+//         .attr("x", 0)
+//         .attr("y", function (d, i) { return i * gridSize; })
+//         .style("text-anchor", "end")
+//         .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
+//         .attr("class", function (d, i) { return ((i >= 0 && i <= 4) ? "yLabel mono axis axis-worktime" : "yLabel mono axis"); });
+
+  //loading csv data where the first colum  is date and columns after that are habits
+var heatmapChart = function(csvFile) {
+    
+    d3.selectAll("g > *").remove()
+
+    d3.csv(csvFile, function(error, data) {
+        x.domain(d3.keys(data[0]).filter(function(key) { return key !== "date"; }));
+
+        //goes through the csv file and defines the dates
+        
+        data.forEach(function(d) {
+            d.date = parseDate(d.date)
+            // d.day = getDate(d.date)
+         //   console.log(d.date)
+          });
+        y.domain(d3.extent(data, function(d){ return d.date; }))
+
+        var habits = x.domain().map(function(habit) {
+          return {
+              habit: habit,
+              values: data.map(function(d) {
+                return {date: d.date, success: +d[habit]};
+                // console.log("============YASSS===============");
+        })
+      };
+    });
+  // x.domain(d3.extent(data, function(d) { return d.DATE; }));
+  // y.domain([
+  //   d3.min(people, function(c) { return d3.min(c.values, function(v) { return v.sleep; }); }),
+  //   d3.max(people, function(c) { return d3.max(c.values, function(v) { return v.sleep; }); })
+  //   ]);
+      
+      
+    
+
+      var colorScale = d3.scale.quantile()
+          .domain([0, buckets - 1, d3.max(data, function (d) { return d.value; })])
+          .range(color);
+
+      
+      //   // .data(data, function(d) {return d.day+':'+d.hour;});
+      //     console.log("testing123")
+  
+  
+      for (jumble = 0; jumble < habits.length; jumble++) { 
+
+      var cards = svg.selectAll(".cards")
+          .data(habits[jumble].values)
+        //.enter().append("g")
+          .attr("class", "cards");
+        // .data(data, function(d) {return d.day+':'+d.hour;});
+          // console.log(habits)
+
+//maybe create a separate variable for each habit and then the train of squares
+      cards.append("title");
+
+      cards.enter().append("rect")
+          .attr("x", (jumble)*gridSize)
+          .attr("y", function (d, j) { return j * gridSize; })
+          .attr("rx", 4)
+          .attr("ry", 4)
+          .attr("class", "hour bordered")
+          .attr("width", gridSize)
+          .attr("height", gridSize)
+          .style("fill", function (d, j) { return color[habits[jumble].values[j].success]});
+          // .style("fill", function (d) {return color[d.values.success]});
+          console.log(habits[jumble].values);
+
+      // cards.transition().duration(1000)
+      //     .style("fill", function(d) { return colorScale(d.value); });
+
+      cards.select("title").text(function(d, j) { return d.values[j].success; });
+      
+      cards.exit().remove();
+
+    }
+
+      var dayLabels = svg.selectAll(".habitLabel")
+      .data(habits)
+      .enter().append("text")
+        .text(function (d) { return d.habit; })
+        .attr("x", function(d, i) { return i * gridSize; })
+        .attr("y", 0)
+        .style("text-anchor", "middle")
+        .attr("transform", "translate(" + gridSize / 2 + ", -6)")
+        .attr("class", function(d, i) { return ((i >= 0) ? "habitLabel mono axis axis-habit " : "habitLabel mono axis"); });
+
+      var yLabels = svg.selectAll(".yLabel")
+        .data(data)
+        .enter().append("text")
+        .attr("x", 0)
+        .attr("y", function (d, i) { return i * gridSize; })
+        .text(function (d) { return d.date; })
+                // .text(function (d) { return d.date.getDate(); })
+        .style("text-anchor", "end")
+        .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
+        .attr("class", function (d, i) { return ((i >= 0 ) ? "yLabel mono axis axis-day" : "yLabel mono axis"); });
+
+
+
+      var legend = svg.selectAll(".legend")
+          .data([0].concat(colorScale.quantiles()), function(d) { return d; });
+
+      legend.enter().append("g")
+          .attr("class", "legend");
+
+      legend.append("rect")
+        .attr("x", function(d, i) { return legendElementWidth * i; })
+        .attr("y", height +gridSize)
+        .attr("width", legendElementWidth)
+        .attr("height", gridSize / 2)
+        .style("fill", function(d, i) { return color[i]; });
+
+
+//add this back in to update the legend
+      legend.append("text")
+        .attr("class", "mono")
+        .text(function(d) { return "≥ " + Math.round(d); })
+        .attr("x", function(d, i) { return legendElementWidth * i; })
+        .attr("y", height + gridSize);
+
+      legend.exit().remove();
+
+   
+
+
+    });  
+      };
+
+      heatmapChart(datasets[0]);
+      
+      var datasetpicker = d3.select("#dataset-picker").selectAll(".dataset-button")
+        .data(datasets);
+
+      datasetpicker.enter()
+        .append("input")
+        .attr("value", function(d){ return "Dataset " + d })
+        .attr("type", "button")
+        .attr("class", "dataset-button")
+        .on("click", function(d) {
+          heatmapChart(d);
+
+        });
+    </script>
+  </body>
+</html>

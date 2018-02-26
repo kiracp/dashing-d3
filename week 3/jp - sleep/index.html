@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style> /* set the CSS */
+body { font: 12px Arial;}
+path { 
+    stroke: steelblue;
+    stroke-width: 2;
+    fill: none;
+}
+.axis path,
+.axis line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+
+.legend rect {
+    fill:white;
+    opacity:0.8;}
+
+
+</style>
+<body>
+
+<!-- load the d3.js library -->    
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="d3.legend.js"></script>
+
+<script>
+// Set the dimensions of the canvas / graph
+var margin = {top: 30, right: 20, bottom: 30, left: 50},
+    width = 800 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+// Parse the date / time
+
+var color = d3.scale.category10();
+
+// Parse the date / time
+var parseDate = d3.time.format("%m/%d/%y").parse;
+// Set the ranges
+var x = d3.time.scale().range([0, width]);
+var y = d3.scale.linear().range([height, 0]);
+// Define the axes
+var xAxis = d3.svg.axis().scale(x)
+    .orient("bottom").ticks(5);
+var yAxis = d3.svg.axis().scale(y)
+    .orient("left").ticks(5);
+// Define the line
+var line = d3.svg.line()
+    .interpolate("basis")
+    .x(function(d) { return x(d.DATE); })
+    .y(function(d) { return y(d.sleep); });
+    
+// Adds the svg canvas
+var svg = d3.select("body")
+    .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+        .attr("transform", 
+              "translate(" + margin.left + "," + margin.top + ")");
+// Get the data
+d3.csv("data.csv", function(error, data) {
+    color.domain(d3.keys(data[0]).filter(function(key) { return key !== "DATE"; }));
+    data.forEach(function(d) {
+        d.DATE = parseDate(d.DATE);
+
+ });
+
+        var people = color.domain().map(function(name) {
+            return {
+              name: name,
+              values: data.map(function(d) {
+                return {DATE: d.DATE, sleep: +d[name]};
+            })
+        };
+    });
+    // Scale the range of the data
+    x.domain(d3.extent(data, function(d) { return d.DATE; }));
+    y.domain([
+        d3.min(people, function(c) { return d3.min(c.values, function(v) { return v.sleep; }); }),
+        d3.max(people, function(c) { return d3.max(c.values, function(v) { return v.sleep; }); })
+  ]);
+
+    // Add the X Axis
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+    // Add the Y Axis
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis);
+
+    var person = svg.selectAll(".person")
+        .data(people)
+        .enter().append("g")
+        .attr("class", "person");
+
+    person.append("path")
+        .attr("class", "line")
+        .attr("d", function(d) { return line(d.values); })
+        .attr("data-legend",function(d) { return d.name})
+        .style("stroke", function(d) { return color(d.name); });
+
+    person.append("text")
+        .datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
+        .attr("transform", function(d) { return "translate(" + x(d.value.DATE) + "," + y(d.value.sleep) + ")"; })
+        .attr("x", 3)
+        .attr("dy", ".35em");
+
+    legend = svg.append("g")
+        .attr("class","legend")
+        .attr("transform","translate(30,30)")
+        .style("font-size","12px")
+        .call(d3.legend)
+        
+
+    setTimeout(function() { 
+         legend
+        .style("font-size","20px")
+        .attr("data-style-padding",10)
+        .call(d3.legend)
+  },1000)
+
+});
+</script>
+</body>
