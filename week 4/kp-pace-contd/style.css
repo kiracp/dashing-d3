@@ -43,16 +43,17 @@ path {
   stroke-width:2px;
 }
 .option {
-  background-color:#ccc;
-  width:600px;
+  width:800px;
+}
+.active {
+  background-color:#dddd44;
 }
 input{
   display:inline-block;
-  background-color:white;
   border: 2px solid black;
+  z-index:3;
   margin: 10px;
+  margin-bottom:0px;
   padding:5px;
   min-width:100px;
 }
-#marathon { 
-background-color:#ddd; }
