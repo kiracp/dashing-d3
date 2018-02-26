@@ -161,10 +161,14 @@ var tooltip = d3.select("body").append("div")
 
 // Get the data
 d3.csv("pretty-pace.csv", function(error, data) {
+    var totalDist = 0;
+    var totalTime = 0;
     data.forEach(function(d) {
         // Make the numbers numbers!
         d.number = +d.number;
         d.distance = +d.distance;
+        totalDist = totalDist + d.distance;
+
         
         // Parse date
         d.date = parseDate(d.date);
@@ -179,12 +183,21 @@ d3.csv("pretty-pace.csv", function(error, data) {
           d.time = parseShortTime(d.time);
           d.time = +formatSecond(d.time) + +formatMinute(d.time)*60;
         }
+        totalTime = totalTime + d.time;
         // Turn pace into d3 time format
         // Get minutes and seconds and calculate total seconds
         d.pace = parsePace(d.pace);
     });
-
+    var formatDist = d3.format(".0f");
+    var formatDist = d3.format(".0f");
+    totalDist = formatDist(totalDist);
+    console.log(totalDist, totalTime, prettyTime(totalTime));
+    svg.select(".info").text(totalDist);
+    svg.select("#start").append("div").text("hey");
     // Start with the pace graph
+    
+
+
     paceGraph(data);
     formatTab("pace");
     // Init with marathon lines, too
