@@ -192,14 +192,11 @@ d3.csv("pretty-pace.csv", function(error, data) {
     var formatDist = d3.format(".0f");
     totalDist = formatDist(totalDist);
     console.log(totalDist, totalTime, prettyTime(totalTime));
-    svg.select(".info").text(totalDist);
-    svg.select("#start").append("div").text("hey");
+
     // Start with the pace graph
-    
-
-
     paceGraph(data);
     formatTab("pace");
+    
     // Init with marathon lines, too
     drawMarathonLines(svg);
 
