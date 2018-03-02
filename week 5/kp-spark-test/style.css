@@ -1,0 +1,27 @@
+body {
+  font: sans-serif;
+}
+
+.chart div {
+  font: 17px sans-serif;
+  background-color: steelblue;
+  text-align: right;
+  padding: 3px;
+  margin: 2px;
+  color: white;
+}
+
+#dashboard {
+  border: 1px solid black;
+  width: 320px;
+  padding: 5px;
+}
+
+.arc text {
+  font: 10px sans-serif;
+  text-anchor: middle;
+}
+
+.arc path {
+  stroke: #fff;
+}
